@@ -340,15 +340,114 @@ class EmbeddingService:
             self._sync_client = None
 
 
+class LMStudioEmbeddingService:
+    """Generate embeddings using LM Studio's OpenAI-compatible endpoint.
+
+    Requires LM Studio running with an embedding model loaded and
+    `lms server start` executed. Configure via ~/.claudia/config.json:
+
+        {
+          "embed_provider": "lmstudio",
+          "lmstudio_base_url": "http://localhost:1234",
+          "lmstudio_embed_model": "text-embedding-nomic-embed-text-v1.5"
+        }
+    """
+
+    def __init__(self):
+        config = get_config()
+        self.base_url = config.lmstudio_base_url.rstrip("/")
+        self.model = config.lmstudio_embed_model
+        self.dimensions = config.embedding_dimensions
+        self._sync_client: Optional[httpx.Client] = None
+        self._available: Optional[bool] = None
+        self._cache = EmbeddingCache()
+
+    def _get_sync_client(self) -> httpx.Client:
+        if self._sync_client is None:
+            self._sync_client = httpx.Client(timeout=30.0)
+        return self._sync_client
+
+    def is_available_sync(self) -> bool:
+        if self._available is not None:
+            return self._available
+        try:
+            r = self._get_sync_client().get(f"{self.base_url}/v1/models", timeout=5.0)
+            self._available = r.status_code == 200
+        except Exception:
+            self._available = False
+        if not self._available:
+            logger.warning(
+                f"LM Studio not reachable at {self.base_url}. "
+                "Ensure `lms server start` is running and an embedding model is loaded."
+            )
+        return self._available
+
+    async def is_available(self) -> bool:
+        return self.is_available_sync()
+
+    def _post_embed(self, text: str) -> Optional[List[float]]:
+        cached = self._cache.get(text)
+        if cached is not None:
+            return cached
+        try:
+            r = self._get_sync_client().post(
+                f"{self.base_url}/v1/embeddings",
+                json={"model": self.model, "input": text},
+            )
+            if r.status_code == 200:
+                embedding = r.json()["data"][0]["embedding"]
+                if len(embedding) == self.dimensions:
+                    self._cache.put(text, embedding)
+                    return embedding
+                logger.warning(
+                    f"LM Studio embedding dimensions: got {len(embedding)}, "
+                    f"expected {self.dimensions}. Check lmstudio_embed_model and embedding_dimensions."
+                )
+            else:
+                logger.error(f"LM Studio embedding request failed: {r.status_code}")
+        except Exception as e:
+            logger.error(f"LM Studio embedding error: {e}")
+        return None
+
+    def embed_sync(self, text: str) -> Optional[List[float]]:
+        if not self.is_available_sync():
+            return None
+        return self._post_embed(text)
+
+    async def embed(self, text: str) -> Optional[List[float]]:
+        return self.embed_sync(text)
+
+    def embed_batch_sync(self, texts: List[str]) -> List[Optional[List[float]]]:
+        if not self.is_available_sync():
+            return [None] * len(texts)
+        return [self._post_embed(t) for t in texts]
+
+    async def embed_batch(self, texts: List[str]) -> List[Optional[List[float]]]:
+        return self.embed_batch_sync(texts)
+
+    async def close(self) -> None:
+        if self._sync_client:
+            self._sync_client.close()
+            self._sync_client = None
+
+
 # Global embedding service instance
-_embedding_service: Optional[EmbeddingService] = None
+_embedding_service = None
 
 
-def get_embedding_service() -> EmbeddingService:
-    """Get or create the global embedding service"""
+def get_embedding_service():
+    """Get or create the global embedding service.
+
+    Returns LMStudioEmbeddingService when embed_provider=lmstudio in config,
+    otherwise returns the default OllamaEmbeddingService.
+    """
     global _embedding_service
     if _embedding_service is None:
-        _embedding_service = EmbeddingService()
+        config = get_config()
+        if config.embed_provider == "lmstudio":
+            _embedding_service = LMStudioEmbeddingService()
+        else:
+            _embedding_service = EmbeddingService()
     return _embedding_service
 
 

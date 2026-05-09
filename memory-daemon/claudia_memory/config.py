@@ -26,6 +26,11 @@ class MemoryConfig:
     embedding_model: str = "all-minilm:l6-v2"
     embedding_dimensions: int = 384
 
+    # Embedding provider: "ollama" (default) or "lmstudio"
+    embed_provider: str = "ollama"
+    lmstudio_base_url: str = "http://localhost:1234"
+    lmstudio_embed_model: str = "text-embedding-nomic-embed-text-v1.5"
+
     # Language model settings (for cognitive tools like ingest/classify)
     # Set to empty string "" to disable cognitive tools entirely
     language_model: str = "qwen3:4b"
@@ -162,6 +167,12 @@ class MemoryConfig:
                     config.embedding_model = data["embedding_model"]
                 if "embedding_dimensions" in data:
                     config.embedding_dimensions = data["embedding_dimensions"]
+                if "embed_provider" in data:
+                    config.embed_provider = data["embed_provider"]
+                if "lmstudio_base_url" in data:
+                    config.lmstudio_base_url = data["lmstudio_base_url"]
+                if "lmstudio_embed_model" in data:
+                    config.lmstudio_embed_model = data["lmstudio_embed_model"]
                 if "language_model" in data:
                     config.language_model = data["language_model"]
                 if "decay_rate_daily" in data:
