@@ -4,6 +4,43 @@ Claudia can run entirely on a local model instead of Anthropic's API. Claude Cod
 
 ---
 
+## Quick Start
+
+### One-time prerequisites
+
+1. **LM Studio** — installed, model downloaded (Qwen2.5-Coder-32B Q4_K_M recommended), GPU Layers set to **Max** in the model card, server started (Developer tab → Start Server)
+2. **Gradio** — `pip install -r requirements.txt` (or `pip install gradio`)
+3. **This repo** — cloned; no workspace needed yet, the launcher creates one
+
+### Every session
+
+```bash
+python launch.py    # from the claudia directory
+```
+
+Browser opens at `http://localhost:7860`.
+
+- Left panel queries LM Studio immediately — green badge if connected, GPU/RAM info shown
+- **Model dropdown** is populated from whatever is loaded in LM Studio right now
+- Pick your model → pick or create a workspace → click **Launch Claudia**
+- A new terminal opens with the three redirect env vars set and `claude --model <id>` running inside the workspace
+
+### Switching to Anthropic Claude
+
+Same UI, no restart needed:
+
+1. Click **Claude (Anthropic)** in the provider radio at the top
+2. Status panel hides; API key input appears
+3. Enter your `sk-ant-…` key — **not saved to disk**
+4. Pick a Claude model (Sonnet 4.6 is the default)
+5. Click **Launch Claudia** — new terminal with `ANTHROPIC_API_KEY` set, no URL override
+
+### Config persistence
+
+`~/.claudia/launch-config.json` saves the last provider, model, and workspace. Next time you run `python launch.py` all three are pre-selected — typically one click to relaunch.
+
+---
+
 ## How It Works
 
 Set these three environment variables before launching `claude`:
