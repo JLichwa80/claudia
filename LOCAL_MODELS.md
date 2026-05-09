@@ -118,23 +118,35 @@ llama.cpp speaks OpenAI format — use litellm proxy to bridge.
 
 ---
 
-## Startup Scripts
+## Launcher
 
-The scripts in this repo handle the environment variables automatically:
+`launch.py` is the primary way to start Claudia. It opens a browser UI at `http://localhost:7860`.
 
-**Windows:**
-```powershell
-.\start-local.ps1                              # auto-detect model
-.\start-local.ps1 -Model "qwen2.5-coder-32b"  # specify model
-.\start-local.ps1 -Model "..." -Port 8080      # custom port
-```
-
-**Mac/Linux:**
+**Install the dependency once:**
 ```bash
-./start-local.sh                       # auto-detect model
-./start-local.sh qwen2.5-coder-32b    # specify model
-PORT=8080 ./start-local.sh            # custom port
+pip install gradio
 ```
+
+**Start the launcher:**
+```bash
+python launch.py              # opens browser UI
+python launch.py --port 8080  # if LM Studio is on a non-default port
+python launch.py --cli        # terminal menus (no Gradio needed)
+```
+
+**Windows / Mac one-liner wrappers** (both delegate to `launch.py`):
+```powershell
+.\start-local.ps1          # Windows
+./start-local.sh           # Mac/Linux
+```
+
+### What the UI lets you do
+
+- **Switch providers** — toggle between Local (LM Studio) and Claude (Anthropic) with a radio button; no env var editing needed
+- **See hardware** — GPU name, VRAM, RAM reported by LM Studio
+- **Pick a model** — dropdown populated live from the LM Studio API, or fixed Claude model list
+- **Manage workspaces** — select existing or create new (templates installed automatically)
+- **Launch** — opens a new terminal with the right env vars and `claude` running
 
 ---
 

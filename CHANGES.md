@@ -10,18 +10,28 @@ No template files, skills, rules, agents, or hooks were modified. All Claudia be
 
 ### `launch.py`
 
-Interactive Python launcher — the primary entry point for running Claudia against a local model. No external dependencies (stdlib only).
+Gradio web UI launcher — the primary entry point for configuring and launching Claudia.
+Opens a browser UI at `http://localhost:7860`.
 
-**What it does, in order:**
-1. Connects to the LM Studio API and lists loaded models
-2. Optionally displays GPU / RAM info from LM Studio's hardware endpoint
-3. Prompts for model selection (numbered menu)
-4. Prompts for workspace: create new, pick existing, or enter a custom path
-5. Installs Claudia templates into new/empty workspaces via `node bin/index.js`
-6. Saves session config to `~/.claudia/launch-config.json` for one-key relaunch
-7. Sets the three redirect env vars and runs `claude --model <id>` in the workspace
+**Requires:** `pip install gradio` (see `requirements.txt`)
 
-Supports `--port <n>` to override the default LM Studio port (1234).
+**UI features:**
+- **Provider toggle** — switch between Local (LM Studio) and Claude (Anthropic) without editing any files
+- **LM Studio status panel** — live connection badge, GPU/RAM hardware info, GPU offload reminder
+- **Model selection** — dropdown populated from the LM Studio API; or fixed Claude model list for Anthropic
+- **Workspace management** — pick an existing workspace or create a new one (templates installed automatically)
+- **How it works accordion** — shows the exact env vars used for each provider
+- **Launch button** — opens a new terminal window with env vars set and `claude` running in the workspace
+- **Config persistence** — saves last-used provider/model/workspace to `~/.claudia/launch-config.json`
+
+**CLI flags:**
+- `--port <n>` — override LM Studio port (default 1234)
+- `--ui-port <n>` — override Gradio port (default 7860)
+- `--cli` — fall back to interactive terminal menus (no Gradio required)
+
+### `requirements.txt`
+
+Python dependency file. Contains `gradio>=4.0` for the web UI launcher.
 
 ### `start-local.ps1`
 
