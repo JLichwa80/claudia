@@ -8,21 +8,28 @@ No template files, skills, rules, agents, or hooks were modified. All Claudia be
 
 ## New Files
 
+### `launch.py`
+
+Interactive Python launcher — the primary entry point for running Claudia against a local model. No external dependencies (stdlib only).
+
+**What it does, in order:**
+1. Connects to the LM Studio API and lists loaded models
+2. Optionally displays GPU / RAM info from LM Studio's hardware endpoint
+3. Prompts for model selection (numbered menu)
+4. Prompts for workspace: create new, pick existing, or enter a custom path
+5. Installs Claudia templates into new/empty workspaces via `node bin/index.js`
+6. Saves session config to `~/.claudia/launch-config.json` for one-key relaunch
+7. Sets the three redirect env vars and runs `claude --model <id>` in the workspace
+
+Supports `--port <n>` to override the default LM Studio port (1234).
+
 ### `start-local.ps1`
 
-Windows PowerShell startup script. Sets the three environment variables that redirect Claude Code to a local model server and launches `claude`.
-
-```
-ANTHROPIC_BASE_URL   → http://localhost:<port>
-ANTHROPIC_API_KEY    → "" (empty)
-ANTHROPIC_AUTH_TOKEN → "lm-studio"
-```
-
-Supports `-Model` and `-Port` parameters for flexibility.
+Thin Windows PowerShell wrapper — delegates to `launch.py`.
 
 ### `start-local.sh`
 
-Mac/Linux bash equivalent of `start-local.ps1`. Supports positional model argument and `PORT` environment variable override.
+Thin Mac/Linux bash wrapper — delegates to `launch.py`.
 
 ### `LOCAL_MODELS.md`
 
