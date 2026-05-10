@@ -26,7 +26,8 @@
     "url": "https://github.com/kbanc85/claudia/issues"
   },
   "bin": {
-    "get-claudia": "./bin/index.js"
+    "get-claudia":       "./bin/index.js",
+    "get-claudia-local": "./bin/install-local.js"
   },
   "files": [
     "bin",

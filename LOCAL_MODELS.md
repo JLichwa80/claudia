@@ -6,38 +6,52 @@ Claudia can run entirely on a local model instead of Anthropic's API. Claude Cod
 
 ## Quick Start
 
-### One-time prerequisites
+### Prerequisites
 
-1. **LM Studio** — installed, model downloaded (Qwen2.5-Coder-32B Q4_K_M recommended), GPU Layers set to **Max** in the model card, server started (Developer tab → Start Server)
-2. **Gradio** — `pip install -r requirements.txt` (or `pip install gradio`)
-3. **This repo** — cloned; no workspace needed yet, the launcher creates one
+1. **Claudia installed** — `npx get-claudia` and workspace onboarded (the normal Claudia flow, unchanged)
+2. **LM Studio** — installed, model downloaded (Qwen2.5-Coder-32B Q4_K_M recommended), GPU Layers set to **Max**, server started (Developer tab → Start Server)
+3. **Gradio** — `pip install -r requirements.txt` (or `pip install gradio`); or run `npx get-claudia-local` from this repo
 
-### Every session
+### Configure once, then launch normally
 
 ```bash
-python launch.py    # from the claudia directory
+python launch.py    # open the configuration dashboard
 ```
 
-Browser opens at `http://localhost:7860`.
+Browser opens at `http://localhost:7860`. Point it at your existing Claudia workspace.
 
-- Left panel queries LM Studio immediately — green badge if connected, GPU/RAM info shown
-- **Model dropdown** is populated from whatever is loaded in LM Studio right now
-- Pick your model → pick or create a workspace → click **Launch Claudia**
-- A new terminal opens with the three redirect env vars set and `claude --model <id>` running inside the workspace
+The dashboard **does not launch Claudia** — it writes configuration files, then you run `claude` yourself:
 
-### Switching to Anthropic Claude
+| Provider | After clicking Apply | How to launch |
+|---|---|---|
+| Local (LM Studio) | Writes `settings.local.json` + generates `start-local.ps1` / `start-local.sh` | `.\start-local.ps1` (Windows) or `./start-local.sh` (Mac/Linux) |
+| Claude (Anthropic) | Writes `settings.local.json` with selected Claude model | `claude` (normal) |
 
-Same UI, no restart needed:
+### Switching providers
 
-1. Click **Claude (Anthropic)** in the provider radio at the top
-2. Status panel hides; API key input appears
-3. Enter your `sk-ant-…` key — **not saved to disk**
-4. Pick a Claude model (Sonnet 4.6 is the default)
-5. Click **Launch Claudia** — new terminal with `ANTHROPIC_API_KEY` set, no URL override
+Just open the dashboard again, select a different provider, click **Apply Configuration**.
+The `start-local` scripts are regenerated each time with the current settings.
 
 ### Config persistence
 
-`~/.claudia/launch-config.json` saves the last provider, model, and workspace. Next time you run `python launch.py` all three are pre-selected — typically one click to relaunch.
+`~/.claudia/launch-config.json` remembers the last workspace, provider, and model.
+The workspace's `.claude/settings.local.json` persists the model so `claude` picks it up automatically.
+
+---
+
+## Memory Daemon Embeddings (Optional)
+
+The memory daemon uses Ollama for embeddings by default. If you don't have Ollama, switch to LM Studio in the dashboard's **Memory Daemon** section (or manually via `~/.claudia/config.json`):
+
+```json
+{
+  "embed_provider": "lmstudio",
+  "lmstudio_base_url": "http://localhost:1234",
+  "lmstudio_embed_model": "text-embedding-nomic-embed-text-v1.5"
+}
+```
+
+Restart the memory daemon after saving.
 
 ---
 
@@ -155,35 +169,36 @@ llama.cpp speaks OpenAI format — use litellm proxy to bridge.
 
 ---
 
-## Launcher
+## Configuration Dashboard
 
-`launch.py` is the primary way to start Claudia. It opens a browser UI at `http://localhost:7860`.
+`launch.py` is a Gradio configuration tool — it writes files, it does not launch Claudia.
 
-**Install the dependency once:**
+**Install once:**
 ```bash
-pip install gradio
+pip install -r requirements.txt   # or: pip install gradio
+# alternatively via npx:
+npx get-claudia-local             # from this repo directory
 ```
 
-**Start the launcher:**
+**Open the dashboard:**
 ```bash
-python launch.py              # opens browser UI
+python launch.py              # opens browser at http://localhost:7860
 python launch.py --port 8080  # if LM Studio is on a non-default port
 python launch.py --cli        # terminal menus (no Gradio needed)
 ```
 
-**Windows / Mac one-liner wrappers** (both delegate to `launch.py`):
+**What the dashboard configures:**
+- Provider selection (Local / Anthropic) → writes `<workspace>/.claude/settings.local.json`
+- Local mode → generates `<workspace>/start-local.ps1` and `start-local.sh`
+- Memory daemon embed provider → writes `~/.claudia/config.json`
+- LM Studio model load / unload (via LM Studio API)
+
+**After clicking Apply, launch Claudia yourself:**
 ```powershell
-.\start-local.ps1          # Windows
-./start-local.sh           # Mac/Linux
+.\start-local.ps1    # Windows, Local mode
+./start-local.sh     # Mac/Linux, Local mode
+claude               # Anthropic mode (or any mode if settings.local.json is set)
 ```
-
-### What the UI lets you do
-
-- **Switch providers** — toggle between Local (LM Studio) and Claude (Anthropic) with a radio button; no env var editing needed
-- **See hardware** — GPU name, VRAM, RAM reported by LM Studio
-- **Pick a model** — dropdown populated live from the LM Studio API, or fixed Claude model list
-- **Manage workspaces** — select existing or create new (templates installed automatically)
-- **Launch** — opens a new terminal with the right env vars and `claude` running
 
 ---
 
@@ -206,9 +221,9 @@ Tool calling (file reads, Bash execution, MCP memory tools) is essential for Cla
 
 ## Switching Back to Claude
 
-The startup scripts only affect the current terminal session. To use Anthropic's Claude again, open a new terminal and run `claude` normally.
+Open the dashboard, select **Claude (Anthropic)**, click **Apply**. Or just run `claude` normally — the `start-local` scripts are only needed for local mode.
 
-Or unset the variables explicitly:
+If you ran a `start-local` script and want to clear the env vars without closing the terminal:
 
 ```powershell
 # Windows
@@ -219,24 +234,6 @@ Remove-Item Env:ANTHROPIC_BASE_URL, Env:ANTHROPIC_API_KEY, Env:ANTHROPIC_AUTH_TO
 # Mac/Linux
 unset ANTHROPIC_BASE_URL ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN
 ```
-
----
-
-## Memory Daemon Embeddings (Optional)
-
-The memory daemon uses Ollama for embeddings by default. To replace Ollama with LM Studio (so nothing external is required), add to `~/.claudia/config.json`:
-
-```json
-{
-  "embed_provider": "lmstudio",
-  "lmstudio_base_url": "http://localhost:1234",
-  "lmstudio_embed_model": "text-embedding-nomic-embed-text-v1.5"
-}
-```
-
-Restart the memory daemon after saving. Make sure the embedding model is downloaded and loaded in LM Studio alongside your main model.
-
-For Mac with mlx-lm or Ollama, keep `embed_provider` as `"ollama"` and point `ollama_host` at your embedding server.
 
 ---
 
